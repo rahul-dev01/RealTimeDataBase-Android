@@ -16,6 +16,8 @@ import com.google.firebase.database.ValueEventListener
 class MainActivity : AppCompatActivity() {
 
     private lateinit var database: DatabaseReference
+    private var employeeKey: String? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,6 +32,9 @@ class MainActivity : AppCompatActivity() {
 
         val submitBtn = findViewById<Button>(R.id.btnSubmit)
         val fetchBtn = findViewById<Button>(R.id.btnFetch)
+        val updateBtn = findViewById<Button>(R.id.btnUpdate)
+        val deleteBtn = findViewById<Button>(R.id.btnDelete)
+
 
         database = FirebaseDatabase.getInstance().reference.child("Employees")
 
@@ -64,10 +69,14 @@ class MainActivity : AppCompatActivity() {
         fetchBtn.setOnClickListener {
             database.limitToLast(1)
                 .addListenerForSingleValueEvent(object : ValueEventListener {
+
                     override fun onDataChange(snapshot: DataSnapshot) {
 
                         if (snapshot.exists()) {
                             for (data in snapshot.children) {
+
+                                employeeKey = data.key
+
                                 val employee = data.getValue(Employee::class.java)
                                 employee?.let {
 
@@ -75,6 +84,9 @@ class MainActivity : AppCompatActivity() {
                                         "Employee Name : ${it.empName}\n" +
                                                 "Employee Age  : ${it.empAge}\n" +
                                                 "Employee Salary : ${it.empSalary}"
+                                    empName.setText(it.empName)
+                                    empAge.setText(it.empAge)
+                                    empSalary.setText(it.empSalary)
                                 }
                             }
                         } else {
@@ -87,5 +99,57 @@ class MainActivity : AppCompatActivity() {
                     }
                 })
         }
+
+
+        updateBtn.setOnClickListener {
+
+            if (employeeKey == null) {
+                Toast.makeText(this, "Fetch data first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val updatedEmployee = Employee(
+                empName.text.toString(),
+                empAge.text.toString(),
+                empSalary.text.toString()
+            )
+
+            database.child(employeeKey!!)
+                .setValue(updatedEmployee)
+                .addOnSuccessListener {
+                    Toast.makeText(this, "Data Updated Successfully", Toast.LENGTH_SHORT).show()
+                }
+                .addOnFailureListener {
+                    Toast.makeText(this, "Update Failed", Toast.LENGTH_SHORT).show()
+                }
+        }
+
+
+
+        deleteBtn.setOnClickListener {
+
+            if (employeeKey == null) {
+                Toast.makeText(this, "Fetch data first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            database.child(employeeKey!!)
+                .removeValue()
+                .addOnSuccessListener {
+                    Toast.makeText(this, "Data Deleted", Toast.LENGTH_SHORT).show()
+
+                    tvResult.text = ""
+                    empName.text.clear()
+                    empAge.text.clear()
+                    empSalary.text.clear()
+                    employeeKey = null
+                }
+                .addOnFailureListener {
+                    Toast.makeText(this, "Delete Failed", Toast.LENGTH_SHORT).show()
+                }
+        }
+
+
+
     }
 }
